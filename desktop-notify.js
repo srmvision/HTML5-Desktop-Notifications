@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  * Author: Tsvetan Tsvetkov (tsekach@gmail.com)
+ * Modified By Jules Delarue for SRMVision (j.delarue@srmvision.com)
  */
 (function (win) {
     /*
@@ -66,6 +67,7 @@
         },
         noop = function () {},
         settings = defaultSetting;
+
     function getNotification(title, options) {
         var notification;
         if (win.Notification) { /* Safari 6, Chrome (23+) */
@@ -86,6 +88,7 @@
         } else if (navigator.mozNotification) { /* Firefox Mobile */
             notification = navigator.mozNotification.createNotification(title, options.body, options.icon);
             notification.show();
+
         } else if (win.external && win.external.msIsSiteMode()) { /* IE9+ */
             //Clear any previous notifications
             win.external.msSiteModeClearIconOverlay();
@@ -113,6 +116,10 @@
             }
         };
     }
+    /*
+    * Affiche la fenetre pop-up du navigateur pour auto/refuser les notifications
+    * @param "callback function, s'exécute une fois que l'utilisateur autorise/refuse les permissions"
+    */
     function requestPermission(callback) {
         if (!isSupported) { return; }
         var callbackFunction = isFunction(callback) ? callback : noop;
@@ -130,6 +137,9 @@
             win.Notification.requestPermission(callbackFunction);
         }
     }
+    /*
+    * Return undefined, "default",  "granted",  denied"
+    */
     function permissionLevel() {
         var permission;
         if (!isSupported) { return; }
@@ -163,16 +173,14 @@
     function isDocumentHidden() {
         return settings.pageVisibility ? (document.hidden || document.msHidden || document.mozHidden || document.webkitHidden) : true;
     }
+    /*
+      Return undefined if notifications are not supported.
+      Return undefined if no permissions for displaying notifications.
+      Title and icons are required. Return undefined if not set.
+   */
     function createNotification(title, options) {
         var notification,
             notificationWrapper;
-        /*
-            Return undefined if notifications are not supported.
-
-            Return undefined if no permissions for displaying notifications.
-
-            Title and icons are required. Return undefined if not set.
-         */
         if (isSupported && isDocumentHidden() && isString(title) && (options && (isString(options.icon) || isObject(options.icon))) && (permissionLevel() === PERMISSION_GRANTED)) {
             notification = getNotification(title, options);
         }
@@ -186,6 +194,12 @@
                 }, settings.autoClose);
             });
         }
+
+        //Click sur la notif -> ouvre/redirige violamment vers le lien de la notif
+        notification.onclick = function() {
+            window.location.href = options.link;
+        };
+
         return notificationWrapper;
     }
     win.notify = {
